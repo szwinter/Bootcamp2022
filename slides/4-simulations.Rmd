@@ -1,0 +1,159 @@
+---
+title: "2022 MSS Bootcamp Day 4"
+author: "Christine Shen"
+date: "\today"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+# Inference 
+
+## Monte Carlo methods - Probability example 1
+```{r}
+
+set.seed(1)
+nsim <- 10000
+nrep <- 1000
+
+est <- numeric(nrep)
+
+for (i in 1:nrep){
+  X <- rnorm(nsim,1,sqrt(3))
+  est[i] <- sum(X<2)/nsim
+}
+
+
+hist(est)
+abline(v=pnorm(2,1,sqrt(3)), col="red")
+
+hist(est, xlim=c(0,1))
+abline(v=pnorm(2,1,sqrt(3)), col="red")
+```
+
+
+## Monte Carlo methods - Probability example 2 (branching process)
+
+```{r}
+run_BP <- function(lambda, t_max) {
+  # Simulate a Po(lambda) BP for t_max generations.
+  # Return T/F for survival.
+  
+  S <- rep(0, t_max)
+  S[1] <- 1
+  
+  for(t in 2:t_max){
+    S[t] <- S[t-1]-1+rpois(1, lambda)
+    
+    if(S[t] == 0){
+      # Did not survive.
+      return(F)
+    }
+  }
+  
+  return(T)
+}
+
+monte_carlo <- function(lambda, n_sim, t_max=100){
+  # Simulate n_sim Po(lambda) BPs, each for t_max generations.
+  # Return average survival probability.
+  
+  survived = rep(F, n_sim)
+  
+  for(i in 1:n_sim){
+    survived[i] = run_BP(lambda, t_max)
+  }
+  
+  return(mean(survived))
+}
+```
+
+```{r}
+n_sim = 500
+lambdas = seq(0.01, 5, by=0.1)
+
+probs = sapply(lambdas, FUN=function(x) monte_carlo(x, n_sim))
+
+df = data.frame(lambda=lambdas,
+                surv_prob=probs)
+
+ggplot(df, aes(x=lambdas, y=probs)) + 
+  geom_hline(yintercept=0, color="red", size=0.75) +  
+  geom_hline(yintercept=1, color="red", size=0.75) + 
+  geom_line(size=1) + 
+  labs(x=expression(lambda), y="P(Survival)",
+       title = expression("Poisson("~ lambda~") Branching Process Survival Probability", sep="")) + 
+  theme_bw(base_size=10)
+```
+
+
+## Monte Carlo methods - Integration example
+```{r}
+
+set.seed(1)
+nsim <- 10000
+nrep <- 1000
+
+est <- numeric(nrep)
+
+for (i in 1:nrep){
+  X <- runif(nsim,0,2)
+  est[i] <- 2*sum(X^2)/nsim
+}
+
+
+hist(est)
+abline(v=8/3, col="red")
+
+hist(est, xlim=c(2,3))
+abline(v=8/3, col="red")
+
+```
+
+
+## Monte Carlo methods - Cauchy Example 
+
+```{r}
+
+est <- numeric(nrep)
+
+for (i in 1:nrep){
+  X <- rcauchy(nsim)
+  est[i] <- mean(X)
+}
+
+hist(est)
+```
+
+## Convergence in distribution
+```{r}
+
+# use Gamma(1,2) as example
+
+xs <- seq(0,5,length.out=5000)
+plot(y=dgamma(xs, shape=1, rate=2), x=xs, xlab="x",
+     ylab="Density", main="Gamma(1,2)", cex=0.6)
+
+nsim <- 3
+X <- matrix(rgamma(nsim*nrep, 1,2), ncol=nrep)
+Xmean <- apply(X,2,mean)
+hist(Xmean, breaks=20)
+
+nsim <- 10
+X <- matrix(rgamma(nsim*nrep, 1,2), ncol=nrep)
+Xmean <- apply(X,2,mean)
+hist(Xmean, breaks=20)
+
+nsim <- 30
+X <- matrix(rgamma(nsim*nrep, 1,2), ncol=nrep)
+Xmean <- apply(X,2,mean)
+hist(Xmean, breaks=20)
+
+```
+
